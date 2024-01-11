@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 
 # Set your OpenAI GPT-3 API key here
-openai.api_key = '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'
+openai.api_key = st.secrets['apikey']
 
 # Streamlit app
 def main():
