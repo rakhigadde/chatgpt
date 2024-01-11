@@ -1,35 +1,37 @@
+from openai import OpenAI
 import streamlit as st
-import openai
 
-# Set your OpenAI GPT-3 API key here
-openai.api_key = st.secrets['apikey']
+st.title("ChatGPT-like clone")
 
-# Streamlit app
-def main():
-    st.title("ChatGPT with Streamlit")
+client = OpenAI(api_key=st.secrets["apikey"])
 
-    # Sidebar to enter user input
-    user_input = st.text_input("You:", "")
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
 
-    if st.button("Ask"):
-        # Generate a response using OpenAI GPT-3
-        response = generate_response(user_input)
-        
-        # Display the response
-        st.text("ChatGPT: {}".format(response))
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-def generate_response(user_input):
-    # Use OpenAI GPT-3 to generate a response
-    prompt = f"User: {user_input}\nChatGPT:"
-    response = openai.Completion.create(
-        engine="text-davinci-002",  # Use the most powerful engine
-        prompt=prompt,
-        max_tokens=150,  # Adjust as needed
-        n=1,
-        stop=None,
-        temperature=0.7,  # Adjust for creativity vs. accuracy
-    )
-    return response.choices[0].text.strip()
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-if __name__ == "__main__":
-    main()
+if prompt := st.chat_input("What is up?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        for response in client.chat.completions.create(
+            model=st.session_state["openai_model"],
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+            stream=True,
+        ):
+            full_response += (response.choices[0].delta.content or "")
+            message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
