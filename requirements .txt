@@ -1,2 +1,2 @@
-openai
+openai==1.7.0
 streamlit
